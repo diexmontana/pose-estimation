@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div class="detalle">
+  <div class="det-nav">
+    {% if revision and rev %}
+      <a href="/">✕ Terminar revisión</a>
+      <span class="rev-badge {{ 'dudosa' if rev.es_dudosa else '' }}">
+        {{ 'Dudosa' if rev.es_dudosa else 'Revisión' }} {{ rev.pos }} / {{ rev.total }}
+      </span>
+      {% if rev.next_rev %}
+        <a class="rev-sig" href="/imagen/{{ rev.next_rev }}?revision=1">Siguiente ›</a>
+      {% else %}
+        <span class="n">Fin de la revisión</span>
+      {% endif %}
+    {% else %}
+      <a href="/">← galería</a>
+      {% if prev_id %}<a href="/imagen/{{ prev_id }}">‹ anterior</a>{% endif %}
+      {% if next_id %}<a href="/imagen/{{ next_id }}">siguiente ›</a>{% endif %}
+    {% endif %}
+    <span class="n">#{{ id }} · {{ nombre }}{% if not disponible %} (no disponible){% endif %}</span>
+  </div>
+
+  <div class="det-cols">
+    <div class="det-img" x-data="{ esq: false }">
+      <img :src="esq ? '/imagen/{{ id }}/overlay' : '/imagen/{{ id }}/original'" alt="{{ nombre }}">
+      {% if tiene_overlay %}
+        <button class="toggle-esq" @click="esq = !esq"
+                x-text="esq ? 'Ver imagen' : 'Ver esqueleto'"></button>
+      {% endif %}
+    </div>
+
+    <div class="det-panel">
+      <button class="guardar-det" hx-get="/coleccion/picker/{{ id }}"
+              hx-target="#popover" hx-swap="innerHTML">＋ Guardar en colección</button>
+      <button class="excluir-det" hx-post="/imagen/{{ id }}/excluir"
+              hx-confirm="¿Excluir esta imagen? Va a la papelera (reversible)."
+              hx-swap="none" hx-on:htmx:after-request="window.location.href='/'">⊘ Excluir imagen</button>
+
+      <div class="modelo-field">
+        <form hx-post="/imagen/{{ id }}/modelo" hx-target="#modelo-msg" hx-swap="innerHTML">
+          <label>Modelo</label>
+          <input name="nombre" list="sug-modelos" value="{{ modelo_actual }}"
+                 autocomplete="off" placeholder="nombre de la modelo…">
+          <datalist id="sug-modelos">{% for m in modelos %}<option value="{{ m }}">{% endfor %}</datalist>
+          <label class="chk"><input type="checkbox" name="carpeta" value="1"> aplicar a toda la carpeta</label>
+          <button type="submit">Guardar modelo</button>
+          <span id="modelo-msg" class="msg"></span>
+        </form>
+      </div>
+
+      <h3>Etiquetas</h3>
+      {% include "_panel.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

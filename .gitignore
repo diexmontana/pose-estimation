@@ -1,0 +1,26 @@
+# Entorno virtual y Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Configuración local (credenciales, URL de la base de datos)
+.env
+
+# Datos, imágenes de prueba y salidas de depuración
+data/
+*_debug/
+
+# Documentación y material del artículo (solo se conserva la guía de reglas)
+docs/*
+!docs/reglas-clasificacion.md
+
+# Archivos temporales de Office/LibreOffice
+.~lock.*#
+~$*
+
+# IDE y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

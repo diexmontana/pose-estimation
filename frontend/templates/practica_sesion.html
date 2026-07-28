@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Práctica</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; background:#000; color:#eee; height:100vh; overflow:hidden;
+           font-family:system-ui, Segoe UI, Roboto, sans-serif; display:flex; flex-direction:column; }
+    .lienzo { flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
+    .wrap { position:relative; display:inline-block; line-height:0; }
+    #pose { max-height:88vh; max-width:96vw; display:block; transition:transform .15s; }
+    #pose.bn { filter:grayscale(1); }
+    .grid-ov { position:absolute; inset:0; pointer-events:none; display:none;
+        background-image:linear-gradient(to right, #ffffff55 1px, transparent 1px),
+                         linear-gradient(to bottom, #ffffff55 1px, transparent 1px);
+        background-size:50% 50%; }
+    .grid-ov.on { display:block; }
+    .reloj { position:fixed; right:1.2rem; bottom:5rem; background:#0009; padding:.3rem .8rem;
+        border-radius:20px; font-size:1.3rem; font-variant-numeric:tabular-nums; }
+    .cerrar { position:fixed; top:1rem; right:1rem; background:#0009; color:#fff; border:0;
+        font-size:1.3rem; width:38px; height:38px; border-radius:50%; cursor:pointer; }
+    .controles { display:flex; align-items:center; justify-content:center; gap:.4rem;
+        padding:.7rem; background:#111; border-top:1px solid #222; flex-wrap:wrap; }
+    .controles button { background:#1e2028; color:#eee; border:1px solid #2a2c36; border-radius:8px;
+        padding:.5rem .8rem; cursor:pointer; font-size:.95rem; }
+    .controles button:hover { border-color:#5b8cff; }
+    .controles button.act { border-color:#5b8cff; color:#8fb0ff; }
+    .controles .sep { width:1px; height:26px; background:#2a2c36; margin:0 .4rem; }
+    .controles select { background:#1e2028; color:#eee; border:1px solid #2a2c36; border-radius:8px; padding:.45rem; }
+    .fin { text-align:center; font-size:1.2rem; color:#aaa; }
+    .fin a { color:#5b8cff; }
+  </style>
+</head>
+<body>
+  <button class="cerrar" onclick="salir()">✕</button>
+  <div class="lienzo">
+    <div class="wrap">
+      <img id="pose" alt="">
+      <div id="grid" class="grid-ov"></div>
+    </div>
+    <div id="fin" class="fin" style="display:none">
+      Sesión completa.<br><a href="/practica">Configurar otra</a> · <a href="/">Galería</a>
+    </div>
+  </div>
+  <div class="reloj" id="reloj">00:00</div>
+  <div class="controles">
+    <button onclick="anterior()" title="Anterior">⏮</button>
+    <button id="btnPausa" onclick="pausa()" title="Pausa">⏸</button>
+    <button onclick="salir()" title="Detener">⏹</button>
+    <button onclick="siguiente()" title="Siguiente">⏭</button>
+    <span class="sep"></span>
+    <button id="bBn" onclick="tog('bn')">B/N</button>
+    <button id="bEsp" onclick="tog('esp')">Espejo</button>
+    <button onclick="girar()">Girar</button>
+    <button id="bGrid" onclick="tog('grid')">Cuadrícula</button>
+    <select onchange="setGrid(this.value)" title="Tamaño de cuadrícula">
+      <option value="2">2×2</option><option value="3">3×3</option>
+      <option value="4">4×4</option><option value="6">6×6</option>
+    </select>
+  </div>
+
+  <script>
+    const pool = {{ pool | tojson }};
+    const plan = {{ plan | tojson }};
+
+    // secuencia de duraciones (segundos). Sin repetir imágenes: la sesión no
+    // dura más que el número de imágenes disponibles.
+    let duraciones = [];
+    if (plan.tipo === "clase") {
+      for (const f of plan.fases) for (let k=0; k<f.poses; k++) duraciones.push(f.segundos);
+    } else {
+      const n = plan.numero || pool.length;   // "todas una vez" o N
+      duraciones = Array(n).fill(plan.segundos);
+    }
+    duraciones = duraciones.slice(0, pool.length);  // no repetir: tope = nº de imágenes
+
+    let i = 0, restante = 0, pausado = false;
+    let est = { bn:false, esp:false, grid:false, rot:0, grid_n:2 };
+    const img = document.getElementById("pose");
+    const reloj = document.getElementById("reloj");
+    const gridEl = document.getElementById("grid");
+
+    function mostrar() {
+      if (i >= duraciones.length) return fin();
+      img.src = "/imagen/" + pool[i] + "/original";   // cada imagen una sola vez, en orden
+      restante = duraciones[i];
+      pinta();
+    }
+    function pinta() {
+      const m = Math.floor(restante/60), s = restante%60;
+      reloj.textContent = String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+    }
+    function siguiente() { i++; if (i >= duraciones.length) return fin(); mostrar(); }
+    function anterior() { if (i>0) i--; mostrar(); }
+    function pausa() {
+      pausado = !pausado;
+      document.getElementById("btnPausa").textContent = pausado ? "▶" : "⏸";
+    }
+    function fin() {
+      clearInterval(timer);
+      document.querySelector(".wrap").style.display = "none";
+      document.getElementById("fin").style.display = "block";
+      reloj.style.display = "none";
+    }
+    function salir() {
+      if (confirm("¿Seguro que quieres terminar la sesión?")) window.location.href = "/practica";
+    }
+    // herramientas
+    function aplica() {
+      img.classList.toggle("bn", est.bn);
+      img.style.transform = "scaleX(" + (est.esp?-1:1) + ") rotate(" + est.rot + "deg)";
+      gridEl.classList.toggle("on", est.grid);
+    }
+    function tog(k) {
+      est[k] = !est[k];
+      const b = {bn:"bBn", esp:"bEsp", grid:"bGrid"}[k];
+      document.getElementById(b).classList.toggle("act", est[k]);
+      aplica();
+    }
+    function girar() { est.rot = (est.rot + 90) % 360; aplica(); }
+    function setGrid(n) { gridEl.style.backgroundSize = (100/n)+"% "+(100/n)+"%"; }
+
+    setGrid(2);
+    mostrar();
+    const timer = setInterval(() => {
+      if (pausado) return;
+      restante--;
+      if (restante <= 0) { siguiente(); return; }
+      pinta();
+    }, 1000);
+  </script>
+</body>
+</html>

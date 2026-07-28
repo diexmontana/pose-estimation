@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div style="padding:1rem 1.2rem">
+  <h2 style="margin:.3rem 0 .3rem">Papelera</h2>
+  <p class="n" style="color:var(--muted);font-size:.85rem">Imágenes excluidas. No se muestran ni entran en sesiones, pero el archivo no se ha borrado. Puedes restaurarlas.</p>
+  {% if not items %}<p class="n" style="color:var(--muted)">La papelera está vacía.</p>{% endif %}
+  <div class="grid">
+    {% for it in items %}
+      <figure class="card">
+        {% if it.miniatura %}<img class="thumb" loading="lazy" src="/miniaturas/{{ it.miniatura }}" alt="">{% else %}<div class="sinimg">sin miniatura</div>{% endif %}
+        <button class="guardar" style="background:#2f7a3d"
+                hx-post="/imagen/{{ it.id }}/restaurar"
+                hx-target="closest .card" hx-swap="outerHTML">↩ Restaurar</button>
+        <figcaption class="info"><div class="nombre">#{{ it.id }} · {{ it.nombre }}</div></figcaption>
+      </figure>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

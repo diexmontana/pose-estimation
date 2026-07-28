@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div style="padding:.6rem 1rem">
+  <div class="col-cab">
+    <a href="/colecciones">← Colecciones</a>
+    <h2>{{ coleccion.nombre }}</h2>
+    <span class="n">{{ total }} imágene{{ 's' if total != 1 else '' }}</span>
+    <button class="exportar-btn" style="margin-left:auto"
+            hx-post="/coleccion/{{ coleccion.id }}/exportar" hx-target="#popover" hx-swap="innerHTML">⬇ Exportar a carpeta</button>
+    <button class="board-del"
+            hx-post="/coleccion/{{ coleccion.id }}/borrar"
+            hx-confirm="¿Borrar la colección «{{ coleccion.nombre }}»? Las imágenes NO se borran.">🗑 Borrar colección</button>
+  </div>
+  <div id="grid" class="grid">
+    {% include "_grid.html" %}
+  </div>
+</div>
+{% endblock %}

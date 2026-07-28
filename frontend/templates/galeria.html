@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% macro opciones(lista, seleccion) %}
+  {% for o in lista %}
+    <label>
+      <input type="checkbox" name="op" value="{{ o.id }}" {% if o.id in seleccion %}checked{% endif %}>
+      {{ o.nombre }}
+    </label>
+    {% if o.hijos %}<div class="arbol">{{ opciones(o.hijos, seleccion) }}</div>{% endif %}
+  {% endfor %}
+{% endmacro %}
+
+{% macro catbloque(cat, seleccion) %}
+  <details class="cat">
+    <summary>{{ cat.nombre }}{% if not cat.automatica %} ✎{% endif %}</summary>
+    <div class="opts">{{ opciones(cat.opciones, seleccion) }}</div>
+  </details>
+{% endmacro %}
+
+{% block contenido %}
+<div class="galeria-layout">
+  <main class="galeria-main">
+    <div class="galeria-top">
+      <span class="n">{{ total }} imágene{{ 's' if total != 1 else '' }}</span>
+      <a href="/papelera" style="font-size:.82rem">Papelera</a>
+      <button class="mezclar" hx-get="/galeria" hx-include="#filtros"
+              hx-vals='{"mezclar":"1","pagina":"1"}' hx-target="#grid" hx-swap="innerHTML">
+        ↻ Mezclar
+      </button>
+    </div>
+    <div id="grid" class="grid">
+      {% include "_grid.html" %}
+    </div>
+  </main>
+
+  <aside class="filtros-panel">
+    <form id="filtros" hx-get="/galeria" hx-target="#grid" hx-swap="innerHTML"
+          hx-trigger="change" hx-include="#filtros">
+      <input type="hidden" name="pagina" value="1">
+
+      {% for grupo in grupos %}
+        {% if grupo.nombre %}
+          <details>
+            <summary>{{ grupo.nombre }}</summary>
+            {% for cat in grupo.categorias %}{{ catbloque(cat, seleccion) }}{% endfor %}
+          </details>
+        {% else %}
+          {% for cat in grupo.categorias %}{{ catbloque(cat, seleccion) }}{% endfor %}
+        {% endif %}
+      {% endfor %}
+
+      <div class="ambito">
+        <div class="amb-tit">Ámbito de búsqueda</div>
+        <label>Colección</label>
+        <select name="coleccion">
+          <option value="">Todas</option>
+          {% for c in colecciones %}
+            <option value="{{ c.id }}" {% if coleccion_id == c.id %}selected{% endif %}>{{ c.nombre }} ({{ c.n }})</option>
+          {% endfor %}
+        </select>
+        <label>Modelo</label>
+        <select name="modelo">
+          <option value="">Todos</option>
+          {% for m in modelos %}
+            <option value="{{ m.id }}" {% if modelo_id == m.id %}selected{% endif %}>{{ m.nombre }} ({{ m.n }})</option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+  </aside>
+</div>
+{% endblock %}

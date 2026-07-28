@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div style="padding:1rem 1.2rem">
+  <h2 style="margin:.3rem 0 1rem">Colecciones</h2>
+  {% if not colecciones %}
+    <p class="n" style="color:var(--muted)">Aún no tienes colecciones. Guarda imágenes desde la galería con el botón «＋ Guardar».</p>
+  {% endif %}
+  <div class="boards">
+    {% for c in colecciones %}
+      <div class="board">
+        <a href="/coleccion/{{ c.id }}" class="board-cover">
+          {% if c.portada %}<img loading="lazy" src="/miniaturas/{{ c.portada }}" alt="{{ c.nombre }}">
+          {% else %}<div class="sinimg">vacía</div>{% endif %}
+        </a>
+        <div class="board-info">
+          <a href="/coleccion/{{ c.id }}" class="board-nom">{{ c.nombre }}</a>
+          <span class="n">{{ c.n }}</span>
+          <button class="board-del" title="Borrar colección"
+                  hx-post="/coleccion/{{ c.id }}/borrar"
+                  hx-confirm="¿Borrar la colección «{{ c.nombre }}»? Las imágenes NO se borran, solo el tablero.">🗑</button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

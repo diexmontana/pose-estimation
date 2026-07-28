@@ -1,0 +1,39 @@
+{% for item in items %}
+  <figure class="card {{ '' if item.disponible else 'nd' }}" title="{{ item.nombre }}">
+    <a class="thumb-link" href="/imagen/{{ item.id }}">
+      {% if item.miniatura %}
+        <img class="thumb" loading="lazy" src="/miniaturas/{{ item.miniatura }}" alt="{{ item.nombre }}">
+      {% else %}
+        <div class="sinimg">sin miniatura</div>
+      {% endif %}
+    </a>
+    {% if coleccion_ver %}
+      <button class="guardar" style="background:#555"
+              hx-post="/coleccion/{{ coleccion_ver }}/quitar/{{ item.id }}"
+              hx-confirm="¿Quitar esta imagen de la colección?"
+              hx-target="closest .card" hx-swap="outerHTML">✕ Quitar</button>
+    {% else %}
+      <button class="guardar" hx-get="/coleccion/picker/{{ item.id }}"
+              hx-target="#popover" hx-swap="innerHTML">＋ Guardar</button>
+      <button class="excluir" title="Excluir (a la papelera)"
+              hx-post="/imagen/{{ item.id }}/excluir"
+              hx-confirm="¿Excluir esta imagen? Va a la papelera (reversible); no se borra el archivo."
+              hx-target="closest .card" hx-swap="outerHTML">⊘</button>
+    {% endif %}
+    <figcaption class="info">
+      <div class="nombre">#{{ item.id }} · {{ item.nombre }}</div>
+      <div class="tags">
+        {% for cat in ["postura", "orientacion_corporal", "encuadre", "escorzo"] %}
+          {% if item.etiquetas.get(cat) %}<span class="tag">{{ item.etiquetas[cat] }}</span>{% endif %}
+        {% endfor %}
+      </div>
+    </figcaption>
+  </figure>
+{% endfor %}
+
+{% if hay_mas %}
+  <button class="mas" hx-get="/galeria?pagina={{ siguiente }}{{ filtro_qs }}"
+          hx-target="this" hx-swap="outerHTML">
+    Cargar más
+  </button>
+{% endif %}

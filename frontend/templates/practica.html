@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% macro opciones(lista, seleccion) %}
+  {% for o in lista %}
+    <label><input type="checkbox" name="op" value="{{ o.id }}" {% if o.id in seleccion %}checked{% endif %}> {{ o.nombre }}</label>
+    {% if o.hijos %}<div class="arbol">{{ opciones(o.hijos, seleccion) }}</div>{% endif %}
+  {% endfor %}
+{% endmacro %}
+{% macro catbloque(cat, seleccion) %}
+  <details class="cat"><summary>{{ cat.nombre }}</summary><div class="opts">{{ opciones(cat.opciones, seleccion) }}</div></details>
+{% endmacro %}
+
+{% block contenido %}
+<form id="cfgform" class="pr-layout" method="get" action="/practica/iniciar"
+      x-data="{ modo:'intervalo', seg:'30', num:'ilim' }"
+      onchange="window.refrescarPreview && refrescarPreview()">
+  <main class="pr-main">
+    <h2 style="margin:.4rem 0 1rem">Sesión de práctica</h2>
+    <input type="hidden" name="modo" :value="modo">
+    <div class="pr-toggle">
+      <button type="button" :class="modo=='intervalo' && 'on'" @click="modo='intervalo'">Intervalo estándar</button>
+      <button type="button" :class="modo=='clase' && 'on'" @click="modo='clase'">Modo clase</button>
+    </div>
+
+    <div x-show="modo=='intervalo'">
+      <h3>Mostrar cada imagen durante…</h3>
+      {% for etq, val in intervalos %}
+        <label class="rad"><input type="radio" name="seg" value="{{ val }}" x-model="seg"> {{ etq }}</label>
+      {% endfor %}
+      <label class="rad"><input type="radio" name="seg" value="custom" x-model="seg"> Personalizado
+        <input type="number" name="custom" value="60" min="1" style="width:70px" x-bind:disabled="seg!='custom'"> s</label>
+      <h3>Número de imágenes</h3>
+      <label class="rad"><input type="radio" value="ilim" x-model="num"> Todas (una vez)</label>
+      <label class="rad"><input type="radio" value="n" x-model="num">
+        <input type="number" name="numero" value="20" min="1" style="width:70px" x-bind:disabled="num!='n'"> imágenes</label>
+    </div>
+
+    <div x-show="modo=='clase'" style="display:none">
+      <h3>Duración de la clase</h3>
+      {% for cl in clases %}
+        <label class="rad clase"><input type="radio" name="clase" value="{{ cl.nombre }}" {% if loop.first %}checked{% endif %}>
+          <b>{{ cl.nombre }}</b> ({{ cl.total_min }} min)
+          <span class="cl-det">{{ cl.fases | join(' · ') }}</span></label>
+      {% endfor %}
+    </div>
+
+    <h3>Orden</h3>
+    <label class="rad"><input type="radio" name="orden" value="aleatorio" checked> aleatorio</label>
+    <label class="rad"><input type="radio" name="orden" value="orden"> en orden</label>
+
+    <p style="color:var(--muted);font-size:.78rem;margin-top:.8rem">Si hay menos imágenes que las pedidas, la sesión acaba al agotarlas (no se repiten).</p>
+    <button type="submit" class="pr-start">▶ Empezar</button>
+  </main>
+
+  <section class="pr-preview">
+    <div id="preview">{% include "_practica_preview.html" %}</div>
+  </section>
+
+  <aside class="filtros-panel">
+    <div class="ambito">
+      <div class="amb-tit">Origen</div>
+      <div class="orig-btns">
+        <button type="button" onclick="abrirElegir('col')">Elegir colecciones</button>
+        <button type="button" onclick="abrirElegir('mod')">Elegir modelos</button>
+      </div>
+      <div id="origen-chips" class="origen-chips"></div>
+      <div id="origen-inputs"></div>
+    </div>
+    <div style="font-size:.68rem;text-transform:uppercase;color:var(--muted);margin:1rem 0 .3rem;letter-spacing:.04em">Acotar por etiquetas</div>
+    {% for grupo in grupos %}
+      {% if grupo.nombre %}
+        <details><summary>{{ grupo.nombre }}</summary>{% for cat in grupo.categorias %}{{ catbloque(cat, seleccion) }}{% endfor %}</details>
+      {% else %}
+        {% for cat in grupo.categorias %}{{ catbloque(cat, seleccion) }}{% endfor %}
+      {% endif %}
+    {% endfor %}
+  </aside>
+
+  <script>
+    const COLS = {{ colecciones | tojson }};
+    const MODS = {{ modelos | tojson }};
+    const origen = { col: {{ coleccion_ids | tojson }}, mod: {{ modelo_ids | tojson }} };
+
+    function nombreDe(tipo, id) {
+      const arr = tipo=='col' ? COLS : MODS;
+      const o = arr.find(x => x.id == id); return o ? o.nombre : id;
+    }
+    function refrescarPreview() {
+      htmx.ajax('GET', '/practica/preview', { target:'#preview', source:'#cfgform' });
+    }
+    function renderOrigen() {
+      const inp = document.getElementById('origen-inputs'); inp.innerHTML = '';
+      origen.col.forEach(id => inp.insertAdjacentHTML('beforeend', `<input type="hidden" name="coleccion" value="${id}">`));
+      origen.mod.forEach(id => inp.insertAdjacentHTML('beforeend', `<input type="hidden" name="modelo" value="${id}">`));
+      const ch = document.getElementById('origen-chips'); ch.innerHTML = '';
+      if (!origen.col.length && !origen.mod.length) { ch.innerHTML = '<span class="n">Todas las imágenes</span>'; }
+      origen.col.forEach(id => ch.insertAdjacentHTML('beforeend', chip('col', id)));
+      origen.mod.forEach(id => ch.insertAdjacentHTML('beforeend', chip('mod', id)));
+      refrescarPreview();
+    }
+    function chip(tipo, id) {
+      return `<span class="ochip">${tipo=='mod'?'👤 ':'▦ '}${nombreDe(tipo,id)}<button type="button" onclick="quitarOrigen('${tipo}',${id})">×</button></span>`;
+    }
+    function quitarOrigen(tipo, id) { origen[tipo] = origen[tipo].filter(x => x != id); renderOrigen(); }
+    function cerrarPop() { document.getElementById('popover').innerHTML = ''; }
+    function abrirElegir(tipo) {
+      const arr = tipo=='col' ? COLS : MODS, sel = origen[tipo];
+      let filas = arr.map(o => `<label class="elg-item">
+          <input type="checkbox" value="${o.id}" ${sel.includes(o.id)?'checked':''}>
+          ${tipo=='col' && o.portada ? `<img src="/miniaturas/${o.portada}">` : '<span class="elg-ph"></span>'}
+          <span>${o.nombre} <span class="n">(${o.n})</span></span></label>`).join('');
+      if (!arr.length) filas = `<div class="n" style="padding:.5rem">No hay ${tipo=='col'?'colecciones':'modelos'} todavía.</div>`;
+      document.getElementById('popover').innerHTML = `
+        <div class="modal-bg" onclick="cerrarPop()">
+          <div class="elg-modal" onclick="event.stopPropagation()">
+            <h4>${tipo=='col'?'Elegir colecciones':'Elegir modelos'}</h4>
+            <div class="elg-list">${filas}</div>
+            <div class="elg-acc">
+              <button type="button" class="apl" onclick="aplicarElegir('${tipo}')">Aplicar</button>
+              <button type="button" onclick="cerrarPop()">Cancelar</button>
+            </div>
+          </div></div>`;
+    }
+    function aplicarElegir(tipo) {
+      origen[tipo] = [...document.querySelectorAll('#popover input[type=checkbox]:checked')].map(c => parseInt(c.value));
+      cerrarPop(); renderOrigen();
+    }
+    document.addEventListener('DOMContentLoaded', renderOrigen);
+  </script>
+</form>
+{% endblock %}

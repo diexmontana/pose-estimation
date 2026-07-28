@@ -1,0 +1,14 @@
+<div class="pr-prev-cab">
+  <b>{{ preview.total }}</b> imágene{{ 's' if preview.total != 1 else '' }} en la sesión
+</div>
+<div class="pr-prev-grid">
+  {% for it in preview.fotos %}
+    {% if it.miniatura %}
+      <img loading="lazy" src="/miniaturas/{{ it.miniatura }}" alt="">
+    {% else %}
+      <div class="sinimg"></div>
+    {% endif %}
+  {% endfor %}
+  {% if preview.mas %}<div class="mas-prev">+{{ preview.mas }}</div>{% endif %}
+  {% if preview.total == 0 %}<div class="n" style="grid-column:1/-1">No hay imágenes con esos criterios.</div>{% endif %}
+</div>

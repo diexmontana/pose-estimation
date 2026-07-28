@@ -1,0 +1,46 @@
+<div id="panel">
+  {% macro editor(cat) %}
+    <div class="catedit">
+      <span class="cn">{{ cat.nombre }}{% if not cat.automatica %} ✎{% endif %}</span>
+      {% if not cat.multivalor %}
+        <select name="opcion_id" hx-post="/imagen/{{ id }}/etiqueta"
+                hx-target="#panel" hx-swap="outerHTML"
+                hx-vals='{"categoria":"{{ cat.codigo }}"}'>
+          <option value="">— automática —</option>
+          {% for o in cat.opciones %}
+            <option value="{{ o.id }}" {% if o.sel %}selected{% endif %}>{{ '· ' * o.prof }}{{ o.nombre }}</option>
+          {% endfor %}
+        </select>
+      {% else %}
+        <div style="flex:1">
+          <div class="chips">
+            {% for o in cat.opciones if o.sel %}
+              <span class="chip {{ 'man' if o.manual else 'auto' }}">{{ o.nombre }}{% if o.manual %}<button
+                  hx-post="/imagen/{{ id }}/quitar" hx-target="#panel" hx-swap="outerHTML"
+                  hx-vals='{"opcion_id":{{ o.id }}}'>×</button>{% endif %}</span>
+            {% endfor %}
+          </div>
+          <select name="opcion_id" hx-post="/imagen/{{ id }}/etiqueta"
+                  hx-target="#panel" hx-swap="outerHTML"
+                  hx-vals='{"categoria":"{{ cat.codigo }}"}'>
+            <option value="">+ añadir…</option>
+            {% for o in cat.opciones %}
+              <option value="{{ o.id }}">{{ '· ' * o.prof }}{{ o.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+    </div>
+  {% endmacro %}
+
+  {% for grupo in grupos %}
+    {% if grupo.nombre %}
+      <details {% if grupo.abierto %}open{% endif %}>
+        <summary>{{ grupo.nombre }}</summary>
+        {% for cat in grupo.categorias %}{{ editor(cat) }}{% endfor %}
+      </details>
+    {% else %}
+      {% for cat in grupo.categorias %}{{ editor(cat) }}{% endfor %}
+    {% endif %}
+  {% endfor %}
+</div>

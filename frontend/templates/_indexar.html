@@ -1,0 +1,42 @@
+<div class="modal-bg"
+     {% if not terminado %}hx-get="/indexar/estado/{{ job }}" hx-trigger="load delay:1.2s"
+     hx-target="this" hx-swap="outerHTML"{% endif %}>
+  <div class="modal" onclick="event.stopPropagation()">
+    {% if not terminado %}
+      <h4>Indexando…</h4>
+      <p style="color:var(--muted)">{{ fase_msg }}</p>
+      <div class="barra"><span></span></div>
+      <p style="font-size:.75rem;color:var(--muted)">No cierres la ventana; puede tardar según cuántas imágenes haya.</p>
+    {% elif error %}
+      <button class="cerrar" onclick="document.getElementById('popover').innerHTML=''">×</button>
+      <h4>Error al indexar</h4>
+      <p style="color:#e77">{{ error }}</p>
+    {% else %}
+      <button class="cerrar" onclick="document.getElementById('popover').innerHTML=''">×</button>
+      <h4>Indexado completo</h4>
+      <p style="color:var(--muted);font-size:.85rem">
+        {{ resumen.nuevas }} imágenes nuevas de {{ resumen.vistas }} vistas.
+        {% if con_revision and dudosas %}<br>{{ dudosas }} quedaron dudosas.{% endif %}
+      </p>
+      {% if con_revision and dudosas %}
+        <a href="/revision" style="display:inline-block;margin-bottom:.7rem;background:#4a2f10;color:#e0a24a;padding:.4rem .8rem;border-radius:8px">Revisar {{ dudosas }} dudosas ›</a>
+      {% endif %}
+      <form hx-post="/indexar/asignar" hx-target="closest .modal-bg" hx-swap="outerHTML">
+        <input type="hidden" name="raiz_id" value="{{ raiz_id }}">
+        <label style="display:block;color:var(--muted);font-size:.75rem;margin:.5rem 0 .15rem">Modelo (toda la carpeta)</label>
+        <input name="modelo" list="sug-modelos" autocomplete="off" placeholder="nombre de la modelo…"
+               style="width:100%;background:#242631;color:var(--text);border:1px solid #2a2c36;border-radius:7px;padding:.4rem">
+        <datalist id="sug-modelos">{% for m in modelos %}<option value="{{ m }}">{% endfor %}</datalist>
+        <label style="display:block;color:var(--muted);font-size:.75rem;margin:.5rem 0 .15rem">Añadir a colección</label>
+        <input name="coleccion" list="sug-cols" autocomplete="off" placeholder="colección (nueva o existente)…"
+               style="width:100%;background:#242631;color:var(--text);border:1px solid #2a2c36;border-radius:7px;padding:.4rem">
+        <datalist id="sug-cols">{% for c in colecciones %}<option value="{{ c }}">{% endfor %}</datalist>
+        <div style="display:flex;gap:.5rem;margin-top:.8rem">
+          <button type="submit" style="background:var(--accent);color:#fff;border:0;border-radius:7px;padding:.45rem .9rem;cursor:pointer">Aplicar</button>
+          <button type="button" onclick="document.getElementById('popover').innerHTML=''"
+                  style="background:#242631;color:var(--text);border:1px solid #2a2c36;border-radius:7px;padding:.45rem .9rem;cursor:pointer">Omitir</button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
